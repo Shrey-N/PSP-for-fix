@@ -693,29 +693,12 @@ void CFE_PSP_SetupReservedMemoryMap(void)
 
     /*
     ** Populate the memory table.
-    ** On Linux each process has its own address space, so use /proc/self/maps 
-    ** to identify mapped and accessible address regions. 
+    ** On Linux each process has its own address space, so use /proc/self/maps
+    ** to identify mapped and accessible address regions.
     */
     CFE_PSP_InitMemoryTableFromProcMaps();
 }
 
-/*
-*********************************************************************************
-** ES BSP Top Level Reserved memory initialization
-*********************************************************************************
-*/
-
-/******************************************************************************
-**
-**  Purpose:
-**    This function performs the top level reserved memory initialization.
-**
-**  Arguments:
-**    RestartType - Type of restart (POWERON, PROCESSOR, etc.)
-**
-**  Return:
-**    CFE_PSP_SUCCESS
-*/
 int32 CFE_PSP_InitProcessorReservedMemory(uint32 RestartType)
 {
     /*
