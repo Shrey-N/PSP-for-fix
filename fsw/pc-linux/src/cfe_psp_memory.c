@@ -597,7 +597,7 @@ int32 CFE_PSP_GetVolatileDiskMem(cpuaddr *PtrToVolDisk, uint32 *SizeOfVolDisk)
 void CFE_PSP_InitMemoryTableFromProcMaps(void)
 {
     FILE *              fp;
-    char                line[256];
+    char                line[512];
     uint32              range_num = 0;
     unsigned long       start, end;
     char                perms[5];
@@ -610,7 +610,8 @@ void CFE_PSP_InitMemoryTableFromProcMaps(void)
     fp = fopen("/proc/self/maps", "r");
     if (fp == NULL)
     {
-        OS_printf("CFE_PSP: Could not open /proc/self/maps for memory validation setup\n");
+        OS_printf("CFE_PSP: Could not open /proc/self/maps. Falling back to permissive validation.\n");
+        CFE_PSP_MemRangeSet(0, CFE_PSP_MEM_RAM, 0, SIZE_MAX, CFE_PSP_MEM_SIZE_DWORD, CFE_PSP_MEM_ATTR_READWRITE);
         return;
     }
 
@@ -656,6 +657,7 @@ void CFE_PSP_InitMemoryTableFromProcMaps(void)
             }
             else
             {
+                OS_printf("CFE_PSP WARNING: /proc/self/maps exceeds CFE_PSP_MEM_TABLE_SIZE (%d). Truncating.\n", CFE_PSP_MEM_TABLE_SIZE);
                 break;
             }
         }
