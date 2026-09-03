@@ -44,6 +44,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <fcntl.h>
+#include <stdbool.h>
 
 /*
 ** cFE includes
@@ -602,6 +603,7 @@ void CFE_PSP_InitMemoryTableFromProcMaps(void)
     unsigned long       start, end;
     char                perms[5];
     uint32              attributes;
+    bool                overflow = false;
     CFE_PSP_MemTable_t *SysMemPtr;
 
     /*
@@ -657,13 +659,44 @@ void CFE_PSP_InitMemoryTableFromProcMaps(void)
             }
             else
             {
-                OS_printf("CFE_PSP WARNING: /proc/self/maps exceeds CFE_PSP_MEM_TABLE_SIZE (%d). Truncating.\n", CFE_PSP_MEM_TABLE_SIZE);
+                overflow = true;
                 break;
             }
         }
     }
 
     fclose(fp);
+
+    /*
+    ** Fall back to permissive validation on overflow or empty map
+    */
+    if (overflow || range_num == 0)
+    {
+        if (overflow)
+        {
+            OS_printf("CFE_PSP WARNING: /proc/self/maps exceeds CFE_PSP_MEM_TABLE_SIZE (%d). "
+                      "Falling back to permissive validation.\n",
+                      CFE_PSP_MEM_TABLE_SIZE);
+        }
+        else
+        {
+            OS_printf("CFE_PSP WARNING: No valid memory ranges parsed from /proc/self/maps. "
+                      "Falling back to permissive validation.\n");
+        }
+
+        memset(CFE_PSP_ReservedMemoryMap.SysMemoryTable, 0, sizeof(CFE_PSP_ReservedMemoryMap.SysMemoryTable));
+        CFE_PSP_MemRangeSet(0, CFE_PSP_MEM_RAM, 0, SIZE_MAX, CFE_PSP_MEM_SIZE_DWORD, CFE_PSP_MEM_ATTR_READWRITE);
+        return;
+    }
+
+    /*
+    ** Clear any remaining unused entries
+    */
+    if (range_num < CFE_PSP_MEM_TABLE_SIZE)
+    {
+        memset(&CFE_PSP_ReservedMemoryMap.SysMemoryTable[range_num], 0,
+               (CFE_PSP_MEM_TABLE_SIZE - range_num) * sizeof(CFE_PSP_MemTable_t));
+    }
 }
 
 void CFE_PSP_SetupReservedMemoryMap(void)
